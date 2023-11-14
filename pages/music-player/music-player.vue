@@ -89,8 +89,10 @@ import {formatSingersName,formatTime,formatImageSize} from '../../utils/format.j
 import {usePlayerStore} from '../../store/player.js'
 import {onLoad,onUnload} from '@dcloudio/uni-app'
 import {querySelect} from '/utils/query-select.js'
+import  showTips from '../../utils/tips.js'
 import useReloadSong from '../../hooks/useReloadSong.js'
-import {getSongUrl,getSongDetail} from "../../service/home.js"
+import {parseLyric} from '../../utils/parse-lyric.js'
+import {getSongUrl,getSongDetail,getSongLyric} from "../../service/home.js"
 
 const playerStore = usePlayerStore()
 const {playModeName,playSongList,currentIndex,playModelIndex,sliderValue,lyricInfos,scrollTop,itemHeight,currentLyricIndex,isPlaying,currentTime,durationTime,currentLyric,currentSong} = toRefs(playerStore)
@@ -143,13 +145,11 @@ const playerTimeUpdate=()=>{
 	 
 	 throttleUpdateLyric()
 }
-let isCanPlay=ref(true)
 const getCurrentSong=async (id,currentIndex)=>{
 	// 如果与正在播放的歌曲ID一样，则不请求新的歌曲信息
 	if(currentSong.value.id !== id) {
 		 const song = await getSongDetail(id)
 		 useReloadSong(song?.songs[0],currentIndex)
-		 
 		 // 如果当前播放器存在播放歌曲，则不重复监听
 		 if(!playerInstance.src){
 			 console.log('listener');
@@ -172,20 +172,24 @@ const getCurrentSong=async (id,currentIndex)=>{
 			 playerInstance.onWaiting(()=>{
 			 		playerInstance.pause()
 			 })
+			 playerInstance.onError((errCode)=>{
+				 console.log(errCode);
+			 })
 		 }
+		
 	}
 	
 }
 
-const canPlay=()=>{
-	isCanPlay.value = true	
+
+const canPlay=()=>{	
 	playerInstance.play()
+	console.log('play');
 	isPlaying.value=true
 }
 const ended = ()=>{
-	 if(isCanPlay.value){
-		onPlaySongTap(true)
-		isCanPlay.value = false
+	 if(playModelIndex!==1){
+		onPlaySongTap(true,true)
 	 }	
 }
 const updateLyric = ()=>{
@@ -259,7 +263,7 @@ const onSliderChanging=(val)=>{
 	currentTime.value = durationTime.value * value/100
 }
 
-const onPlaySongTap=(isNext)=>{
+const onPlaySongTap=(isNext,isEnd)=>{
 	// 播放列表长度
 	const listLength = playerStore.playSongList.length
 	// 歌曲新index
@@ -288,11 +292,13 @@ const onPlaySongTap=(isNext)=>{
 			}
 			break
 	}
-	currentIndex.value = newIndex;
-	console.log(playModelIndex.value,newIndex);
-	const _playSongList = [...playSongList.value]
-	// 获取下一次播放歌曲的信息,并重置播放的信息
-	if(_playSongList[newIndex]) useReloadSong(_playSongList[newIndex],newIndex)
+	
+		if(isEnd && playModelIndex.value===1) return
+		currentIndex.value = newIndex;
+		console.log(playModelIndex.value,newIndex);
+		const _playSongList = [...playSongList.value]
+		// 获取下一次播放歌曲的信息,并重置播放的信息
+		if(_playSongList[newIndex]) useReloadSong(_playSongList[newIndex],newIndex)
 }
 
 const onPlayNextSong=()=>{

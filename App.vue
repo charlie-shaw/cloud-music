@@ -57,14 +57,13 @@
 				this.globalData.contentHeight = this.resetContentHeight()
 			},
 			initAudio(){
-				// #ifdef H5
 				const audio =  uni.createInnerAudioContext()
-				// #endif
-				
-				// #ifndef H5
-				const audio =  uni.getBackgroundAudioManager()
-				// #endif
+				// // #ifndef H5
+				// const audio =  uni.getBackgroundAudioManager()
+				// // #endif
 				this.globalData.audioContext = audio
+
+				
 				
 			}
 		}
